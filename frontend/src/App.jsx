@@ -1,22 +1,19 @@
 import { useState } from 'react'
 
-const EXAMPLE_JSON = `{
-  "emails": [
-    {
-      "from": "john@example.com",
-      "subject": "Meeting tomorrow",
-      "snippet": "Don't forget about our meeting at 10 AM"
-    },
-    {
-      "from": "jane@example.com",
-      "subject": "Project update",
-      "snippet": "Here's the latest status on the project"
-    }
-  ]
-}`
+const EXAMPLE_TEXT = `From: john@example.com
+Subject: Meeting tomorrow
+Don't forget about our meeting at 10 AM. We need to discuss the project timeline.
+
+From: jane@example.com
+Subject: Project update
+Here's the latest status on the project. Everything is on track for the Q4 release.
+
+From: mike@example.com
+Subject: Budget approval needed
+Please review and approve the budget proposal I sent yesterday.`
 
 function App() {
-  const [emailsJson, setEmailsJson] = useState(EXAMPLE_JSON)
+  const [rawText, setRawText] = useState(EXAMPLE_TEXT)
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -28,16 +25,17 @@ function App() {
     setSummary(null)
 
     try {
-      // Parse JSON to validate
-      const data = JSON.parse(emailsJson)
+      if (!rawText.trim()) {
+        throw new Error('Proszę wpisać tekst emaili.')
+      }
 
       // Call backend API
-      const response = await fetch('http://localhost:8000/summarize_emails', {
+      const response = await fetch('http://localhost:8000/summarize_raw', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ text: rawText }),
       })
 
       if (!response.ok) {
@@ -48,11 +46,7 @@ function App() {
       const result = await response.json()
       setSummary(result)
     } catch (err) {
-      if (err instanceof SyntaxError) {
-        setError('Nieprawidłowy format JSON. Sprawdź składnię.')
-      } else {
-        setError(err.message || 'Wystąpił błąd podczas generowania podsumowania.')
-      }
+      setError(err.message || 'Wystąpił błąd podczas generowania podsumowania.')
     } finally {
       setLoading(false)
     }
@@ -67,7 +61,7 @@ function App() {
             Email Summary
           </h1>
           <p className="text-gray-600">
-            Wklej JSON z emailami i wygeneruj inteligentne podsumowanie
+            Wklej treść emaili lub notatki i wygeneruj inteligentne podsumowanie
           </p>
         </div>
 
@@ -76,19 +70,22 @@ function App() {
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label
-                htmlFor="emails-json"
+                htmlFor="raw-text"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                JSON z emailami
+                Treść emaili
               </label>
               <textarea
-                id="emails-json"
-                rows={12}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                value={emailsJson}
-                onChange={(e) => setEmailsJson(e.target.value)}
-                placeholder='{"emails": [...]}'
+                id="raw-text"
+                rows={14}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+                placeholder="Wklej treść emaili lub notatki. Mogą być jeden pod drugim."
               />
+              <p className="mt-2 text-xs text-gray-500">
+                Możesz wkleić emaile skopiowane z Gmaila, Outlooka lub dowolne notatki tekstowe.
+              </p>
             </div>
 
             <button
